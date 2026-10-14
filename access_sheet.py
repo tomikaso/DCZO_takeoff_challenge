@@ -3,7 +3,7 @@ import ftplib
 import constants
 
 # Extract the unique sheet ID from your URL
-sheet_id = "13dbVJxrqUztId54qPU0OO5wStf6kayd4zWZzwY4T8wM"
+sheet_id = constants.sheet_id  # gets the id of the google sheet;
 takeoff_sheet = "takeoffs"
 flight_sheet = "flights"
 
@@ -21,8 +21,8 @@ df_takeoffs = pd.read_csv(csv_url_takeoffs)
 takeoffs = ''
 row = 0
 while row < len(df_takeoffs):
-    lat = int((float(df_takeoffs['latitude'][row].replace(',', '.')) - zero_lat ) * -1250)
-    long = int((float(df_takeoffs['longitude'][row].replace(',', '.')) - zero_long) * 908)
+    lat = int((float(df_takeoffs['latitude'][row].replace(',', '.')) - zero_lat) * -1250)
+    long = int((float(df_takeoffs['longitude'][row].replace(',', '.')) - zero_long) * 912)
     takeoffs = takeoffs + df_takeoffs['Startplatz'][row] + ',' + str(lat) + ',' + str(long) + ','
     row = row + 1
 print(takeoffs)
@@ -38,7 +38,7 @@ print("champion ranking created")
 # send it to DCZO-webserver
 session = ftplib.FTP('ftp.dczo.ch', constants.ftp_user, constants.ftp_pw)
 file0 = open(path + 'takeoffs.txt', 'rb')  # file to send
-session.storbinary('STOR ranking_result.html', file0)  # send the file
+session.storbinary('STOR takeoff_challenge/takeoffs.txt', file0)  # send the file
 file0.close()  # close file and FTP
 session.quit()
 print("files sent to DCZO")
