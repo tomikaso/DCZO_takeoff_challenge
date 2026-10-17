@@ -29,7 +29,7 @@ print(takeoffs)
 
 # save takeoff-file
 # path = ''  # test on windows
-path = '/home/solarmanager/takeoff_challenge/' # for Raspi
+path = '/home/solarmanager/takeoff_challenge/'  # for Raspi
 takeoff_file = open(path + 'takeoffs.txt', 'w')
 takeoff_file.write(takeoffs)
 takeoff_file.close()

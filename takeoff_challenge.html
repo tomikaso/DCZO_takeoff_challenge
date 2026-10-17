@@ -45,15 +45,45 @@ tr { background-color: aliceblue;} tr:not(:first-child):hover {background-color:
         <svg id="map_svg"></svg>
         <img src="zurich_map.png" alt="openstreet_maps" />
     </div>
-    <h3 id="takeoff_info">Startplätze</h3>
+    <h3 id="takeoff_info">Startplätze</h3> <span id="program_info">mein log</span>
     <button onclick="show_takeoffs()">Zeige Startplätze</button>
 
 <a>Stand: 11. Oktober 2026</a>
 <table id="ranking"></table>
 <script>
 const takeoffs = 'Alp-Scheidegg,419,106,Galgenen,356,292,Hüsliberg,539,251,Altwies,533,224,Hörnli,418,24,Bachtel,366,122,';
-const pilots = '1,Philipp,6,2460,Alp-Scheidegg Galgenen Hüsliberg Altwies Bachtel,2,Irene,3,1820,Alp-Scheidegg Galgenen Hörnli,3,Thomas,2,945,Alp-Scheidegg Bachtel,4,Jaco,2,850,Galgenen Hörnli,5,Lowflyer,1,450,Alp-Scheidegg';
-function show_takeoffs(){document.getElementById("takeoff_info").innerHTML = "<h3>loading...</h3>";
+const flights_str = '3.10.2026,Madonna,Alp-Scheidegg,450,5.10.2026,Cindy Lauper,Galgenen,620,12.10.2026,Madonna,Alp-Scheidegg,450,14.10.2026,Cindy Lauper,Bachtel,360,14.10.2026,Alphaville,Hörnli,1380,19.10.2026,Madonna,Galgenen,380,3.10.2026,Madonna,Alp-Scheidegg,450,3.10.2026,Madonna,Hörnli,450,14.10.2026,Cindy Lauper,Bachtel,360,10.10.2026,Pipi Pollina,Alp-Scheidegg,406,12.10.2026,Alphaville,Bachtel,340,3.10.2026,Alphaville,Alp-Scheidegg,450,5.10.2026,Alphaville,Hüsliberg,620,12.10.2026,Madonna,Altwies,450,14.10.2026,Cindy Lauper,Bachtel,360,14.10.2026,Alphaville,Hörnli,380,19.10.2026,Madonna,Galgenen,380,3.10.2026,Madonna,Alp-Scheidegg,450,3.10.2026,Alphaville,Hörnli,450,14.10.2026,Cindy Lauper,Bachtel,360,10.10.2026,Pipi Pollina,Alp-Scheidegg,406,12.10.2026,Alphaville,Bachtel,340';
+flights = flights_str.split(',');
+let temp_pilots = [];
+let i = 0;
+    do {
+    temp_pilots[i/4] = flights[i + 1]; i = i + 4;
+    } while (i < flights.length - 1);
+const pilots = [...new Set(temp_pilots)];
+
+let vertical_meters = [];
+let personal_start_grids = [];
+let personal_unique_grids = [];
+let j = 0;
+for (pilot of pilots) {
+    let i = 0;
+    personal_start_grids[j] = "";
+    vertical_meters[j] = 0;
+    do {
+        if (flights[i+1] == pilot)
+            {
+                vertical_meters[j] += parseInt(flights[i + 3]);
+                personal_start_grids[j] += flights[i + 2] + " ";
+                }
+    i = i + 4;
+    } while (i < flights.length - 1);
+    personal_unique_grids[j] = [...new Set(personal_start_grids[j].split(' '))];
+    x = personal_unique_grids[j].indexOf("");
+    personal_unique_grids[j].splice(x, 1);
+    j ++;
+}
+create_rank_table();
+function show_takeoffs(){
     to_array = takeoffs.split(',');
     let i = 0;
     svg_to = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg">';
@@ -61,15 +91,15 @@ function show_takeoffs(){document.getElementById("takeoff_info").innerHTML = "<h
     x = parseInt(to_array[i + 1]); xt = x + 15;
     y = parseInt(to_array[i + 2]); yt = y + 5
     name = to_array[i];
-    svg_to = svg_to + `<circle cx="${x}" cy="${y}" r="8" fill="red" /><text x="${xt}" y="${yt}" fill="red">${name}</text>`;
+    svg_to = svg_to + `<circle cx="${x}" cy="${y}" r="8" fill="blue" /><text x="${xt}" y="${yt}" fill="blue">${name}</text>`;
     i = i + 3;
     } while (i < to_array.length - 1);
     document.getElementById("map_svg").innerHTML = svg_to + "</svg>";
     document.getElementById("takeoff_info").innerHTML = "<h3> Alle Takeoff's </h3>";
     }
 function pilot_takeoffs(pilot_id){document.getElementById("takeoff_info").innerHTML = "<h3>loading...</h3>";
-    to_array = takeoffs.split(','); pilots_array = pilots.split(',');
-    pilots_to = pilots_array[pilot_id * 5 + 4].split(' '); // returns an array of start grids;
+    to_array = takeoffs.split(',');
+    pilots_to = personal_unique_grids[pilot_id]; // returns an array of start grids;
     svg_to = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg">';
     for (let grid of pilots_to) {
         let i = 0;
@@ -78,25 +108,52 @@ function pilot_takeoffs(pilot_id){document.getElementById("takeoff_info").innerH
                     {
                     x = parseInt(to_array[i + 1]); xt = x + 15;
                     y = parseInt(to_array[i + 2]); yt = y + 5
-                    name = to_array[i];
+                    name = to_array[i] + number_of_starts(personal_start_grids[pilot_id], grid);
                     svg_to = svg_to + `<circle cx="${x}" cy="${y}" r="8" fill="red" /><text x="${xt}" y="${yt}" fill="red">${name}</text>`;
                     }
                 i = i + 3;
                 } while (i < to_array.length - 1);
         }
     document.getElementById("map_svg").innerHTML = svg_to + "</svg>";
-    document.getElementById("takeoff_info").innerHTML = "<h3> Takeoffs von: " + pilots_array[pilot_id * 5 + 1] + " </h3>";
+    document.getElementById("takeoff_info").innerHTML = "<h3> Takeoffs von: " + pilots[pilot_id] + " </h3>";
     }
-function create_rank_table(){
-    t_row='<table><tr><td><b>Rang</b></td><td><b>Pilot / Pilotin</b></td><td><b>Startplätze</b></td><td><b>Höhenmeter</b></td><td><b>Take-Offs</b></td></tr>';
-    pilots_array = pilots.split(',');
-    let i = 0;
-    do {
-    pilot_id = i / 5; rank = pilots_array[i + 0]; name = pilots_array[i + 1]; number = pilots_array[i + 2]; meters = pilots_array[i + 3]; grids = pilots_array[i + 4];
-    t_row = t_row + `<tr onmouseover="pilot_takeoffs(${pilot_id})"><td>${rank}</td><td>${name}</td><td>${number}</td><td>${meters}</td><td>${grids}</td></tr>`;
-    i = i + 5;
-    } while (i < pilots_array.length - 1);
+
+function create_rank_table() {
+    // 1. Create a combined list of pilot data objects
+    let pilotData = pilots.map((pilot, index) => {
+        return {
+            name: pilot,
+            originalIndex: index, // Keep track for pilot_takeoffs function
+            meters: vertical_meters[index],
+            uniqueGrids: personal_unique_grids[index],
+            flightNum: personal_start_grids[index].split(" ").length - 1
+        };
+    });
+
+    // 2. Sort by Höhenmeter descending
+    pilotData.sort((a, b) => b.meters - a.meters);
+
+    let t_row = '<table><tr><td><b>Rang</b></td><td><b>Pilot / Pilotin</b></td><td><b>Startplätze</b></td><td><b>Flüge</b></td><td><b>Höhenmeter</b></td><td><b>Take-Offs</b></td></tr>';
+
+    // 3. Use the sorted data to build rows
+    pilotData.forEach((pilot, index) => {
+        let rank = index + 1;
+        t_row += `<tr onmouseover="pilot_takeoffs(${pilot.originalIndex})">
+            <td>${rank}</td>
+            <td>${pilot.name}</td>
+            <td>${pilot.uniqueGrids.length}</td>
+            <td>${pilot.flightNum}</td>
+            <td>${pilot.meters}</td>
+            <td>${pilot.uniqueGrids.toString()}</td>
+        </tr>`;
+    });
+
     document.getElementById("ranking").innerHTML = t_row + "</table>";
+}
+function number_of_starts(startlist, grid) {
+    // Split into an array and filter for exact matches
+    const matches = startlist.split(' ').filter(item => item === grid);
+    return " " + matches.length + "x";
 }
 </script>
 </body> </html>

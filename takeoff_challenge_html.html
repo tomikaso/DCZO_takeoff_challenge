@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<style type="text/css" media="screen">
+
+  .km {font-size: 14px; font-weight: bold; color: #314483;}
+  .img-overlay-wrap {
+  position: relative;
+  display: inline-block;
+  width: 100%; /* or a fixed size */
+  max-width: 960px;
+}
+
+.img-overlay-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.img-overlay-wrap svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allows clicks to pass through the SVG to the image if needed */
+}
+table, td, th, a, p {font-size: 10pt; padding: 4pt;}
+tr { background-color: aliceblue;} tr:not(:first-child):hover {background-color: skyblue;}
+.new{background-color: cornsilk;} a:link {color: darkred; text-decoration: none;}
+</style></head>
+<body onload="load_flights()">
+<h1>DCZO-Takeoff-Challenge: unsere Karte</h1>
+<div class="img-overlay-wrap">
+    <svg id="map_svg"></svg>
+    <img src="/images/thomaskamps/takeoff_challenge/zurich_map.png" alt="openstreet_maps" />
+</div>
+<h3 id="takeoff_info">Startplätze</h3>
+<button onclick="show_takeoffs()">Zeige Startplätze</button><button onclick="create_rank_table()">Rangliste</button>
+
+<span>Stand: 14. Oktober 2026</span>
+<table id="ranking"></table>
+<script>
+const h = new Date();
+const takeoffs = 'Alp-Scheidegg,419,106,Galgenen,356,292,Huesliberg,539,251,Altwies,533,224,Hoernli,418,24,Bachtel,366,122,';
+let vertical_meters = [];
+let personal_start_grids = [];
+let personal_unique_grids = [];
+let flights = [];
+let pilots = [];
+function datehour() {return h.getHours() + 100 * h.getDate() + 10000 * h.getMonth();}
+async function load_flights(){
+    let fli = await fetch("/images/thomaskamps/takeoff_challenge/flights.txt?"+ datehour());
+    let flights_str = await fli.text();
+    flights = flights_str.split(',');
+    let temp_pilots = [];
+    let i = 0;
+    do {
+       temp_pilots[i/4] = flights[i + 1]; i = i + 4;
+    } while (i < flights.length - 1);
+    pilots = [...new Set(temp_pilots)];
+    let j = 0;
+    for (pilot of pilots) {
+       let i = 0;
+       personal_start_grids[j] = "";
+       vertical_meters[j] = 0;
+       do {
+        if (flights[i+1] == pilot)
+            {
+                vertical_meters[j] += parseInt(flights[i + 3]);
+                personal_start_grids[j] += flights[i + 2] + " ";
+                }
+    i = i + 4;
+    } while (i < flights.length - 1);
+    personal_unique_grids[j] = [...new Set(personal_start_grids[j].split(' '))];
+    x = personal_unique_grids[j].indexOf("");
+    personal_unique_grids[j].splice(x, 1);
+    j ++;
+   }
+    create_rank_table();
+}
+async function show_takeoffs(){document.getElementById("takeoff_info").innerHTML = "<h3>loading...</h3>";
+    let tof = await fetch("/images/thomaskamps/takeoff_challenge/takeoffs.txt?"+ datehour());
+    let tof_t = await tof.text();
+    to_array = tof_t.split(',');
+    let i = 0;
+    svg_to = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg">';
+    do {
+    x = parseInt(to_array[i + 2]); xt = x + 15; // logitude
+    y = parseInt(to_array[i + 1]); yt = y + 5; // latitude
+    name = to_array[i];
+    svg_to = svg_to + `<circle cx="${x}" cy="${y}" r="8" fill="blue" /><text x="${xt}" y="${yt}" fill="blue">${name}</text>`;
+    i = i + 3;
+    } while (i < to_array.length - 1);
+    document.getElementById("map_svg").innerHTML = svg_to + "</svg>";
+    document.getElementById("takeoff_info").innerHTML = "<h3> Alle Takeoff's </h3>";
+    }
+function pilot_takeoffs(pilot_id){document.getElementById("takeoff_info").innerHTML = "<h3>loading...</h3>";
+    to_array = takeoffs.split(',');
+    pilots_to = personal_unique_grids[pilot_id]; // returns an array of start grids;
+    svg_to = '<svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg">';
+    for (let grid of pilots_to) {
+        let i = 0;
+            do {
+                if (to_array[i] == grid)
+                    {
+                    x = parseInt(to_array[i + 1]); xt = x + 15;
+                    y = parseInt(to_array[i + 2]); yt = y + 5
+                    name = to_array[i] + number_of_starts(personal_start_grids[pilot_id], grid);
+                    svg_to = svg_to + `<circle cx="${x}" cy="${y}" r="8" fill="red" /><text x="${xt}" y="${yt}" fill="red">${name}</text>`;
+                    }
+                i = i + 3;
+                } while (i < to_array.length - 1);
+        }
+    document.getElementById("map_svg").innerHTML = svg_to + "</svg>";
+    document.getElementById("takeoff_info").innerHTML = "<h3> Takeoffs von: " + pilots[pilot_id] + " </h3>";
+    }
+
+function create_rank_table() {
+    // 1. Create a combined list of pilot data objects
+    let pilotData = pilots.map((pilot, index) => {
+        return {
+            name: pilot,
+            originalIndex: index, // Keep track for pilot_takeoffs function
+            meters: vertical_meters[index],
+            uniqueGrids: personal_unique_grids[index],
+            flightNum: personal_start_grids[index].split(" ").length - 1
+        };
+    });
+
+    // 2. Sort by Höhenmeter descending
+    pilotData.sort((a, b) => b.meters - a.meters);
+
+    let t_row = '<table><tr><td><b>Rang</b></td><td><b>Pilot / Pilotin</b></td><td><b>Startplätze</b></td><td><b>Flüge</b></td><td><b>Höhenmeter</b></td><td><b>Take-Offs</b></td></tr>';
+
+    // 3. Use the sorted data to build rows
+    pilotData.forEach((pilot, index) => {
+        let rank = index + 1;
+        t_row += `<tr onmouseover="pilot_takeoffs(${pilot.originalIndex})">
+            <td>${rank}</td>
+            <td>${pilot.name}</td>
+            <td>${pilot.uniqueGrids.length}</td>
+            <td>${pilot.flightNum}</td>
+            <td>${pilot.meters}</td>
+            <td>${pilot.uniqueGrids.toString()}</td>
+        </tr>`;
+    });
+
+    document.getElementById("ranking").innerHTML = t_row + "</table>";
+}
+function number_of_starts(startlist, grid) {
+    // Split into an array and filter for exact matches
+    const matches = startlist.split(' ').filter(item => item === grid);
+    return " " + matches.length + "x";
+}
+
+
+</script>
