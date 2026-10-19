@@ -1,5 +1,0 @@
-XC_user = 'thodczo'
-XC_password = 'tho110170xc'
-ftp_pw = 'bSnJ8eLkpa0DAgg27n'
-ftp_user = 'thomaskamps@dczo.ch'
-sheet_id = '13dbVJxrqUztId54qPU0OO5wStf6kayd4zWZzwY4T8wM'
